@@ -1,0 +1,81 @@
+name: Check Logs
+
+on:
+  push:
+  schedule:
+     - cron: '0 */6 * * *'
+#    - cron: '*/5 1-4 * * 1,3,5'   
+
+jobs:
+  check-logs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Restore last-seen cache
+        uses: actions/cache@v4
+        with:
+          path: last_seen.json
+          key: wcl-last-seen-${{ github.run_id }}
+          restore-keys: |
+            wcl-last-seen-
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run log checker
+        env:
+          WCL_CLIENT_ID:       ${{ secrets.WCL_CLIENT_ID }}
+          WCL_CLIENT_SECRET:   ${{ secrets.WCL_CLIENT_SECRET }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GUILD_NAME:          ${{ secrets.GUILD_NAME }}
+          GUILD_REALM:         ${{ secrets.GUILD_REALM }}
+          GUILD_REGION:        ${{ secrets.GUILD_REGION }}
+        run: python checklogs.py
+
+      - name: Save last-seen cache
+        uses: actions/cache@v4
+        with:
+          path: last_seen.json
+          key: wcl-last-seen-${{ github.run_id }}
+
+      - name: Update badge timestamps
+        run: |
+          python -c "
+          import json
+          from datetime import datetime, timezone, timedelta
+          now = datetime.now(timezone.utc)
+          et_offset = -4
+          et_now = now + timedelta(hours=et_offset)
+          last_run_str = et_now.strftime('%m/%d %I:%M %p ET')
+          mins_to_add = (5 - now.minute % 5) % 5 or 5
+          candidate = (now + timedelta(minutes=mins_to_add)).replace(second=0, microsecond=0)
+          for _ in range(10080):
+              wd, h, m = candidate.weekday(), candidate.hour, candidate.minute
+              if wd in (0, 2, 4) and (h < 3 or (h == 3 and m == 0)):
+                  break
+              candidate += timedelta(minutes=5)
+          et_next = candidate + timedelta(hours=et_offset)
+          next_run_str = et_next.strftime('%m/%d %I:%M %p ET')
+          with open('last_run_badge.json', 'w') as f:
+              json.dump({'schemaVersion': 1, 'label': 'last run', 'message': last_run_str, 'color': '5865F2'}, f)
+          with open('next_run_badge.json', 'w') as f:
+              json.dump({'schemaVersion': 1, 'label': 'next run', 'message': next_run_str, 'color': '57F287'}, f)
+          print('Last run: ' + last_run_str)
+          print('Next run: ' + next_run_str)
+          "
+
+      - name: Commit badge data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add last_run_badge.json next_run_badge.json
+          git diff --cached --quiet || git commit -m "chore: update badge timestamps [skip ci]"
+          git push
