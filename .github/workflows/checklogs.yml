@@ -49,6 +49,9 @@ jobs:
           path: last_seen.json
           key: wcl-last-seen-${{ github.run_id }}
 
+      - name: Pull latest before badge update
+        run: git pull --rebase origin main
+
       - name: Update last-run badge only
         run: |
           python -c "
@@ -66,7 +69,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
           git add last_run_badge.json
           git diff --cached --quiet || git commit -m "chore: update badge timestamps [skip ci]"
           git push
