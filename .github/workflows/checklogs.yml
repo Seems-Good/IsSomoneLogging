@@ -45,9 +45,13 @@ jobs:
           path: last_seen.json
           key: wcl-last-seen-${{ github.run_id }}
 
+      - name: Stash changes
+        run: git stash push -m "temporary stash before pull"
       - name: Pull latest before badge update
         run: git pull --rebase origin main
-
+      - name: Restore stash
+        run: git stash pop
+      
       - name: Update last-run badge
         run: |
           python3 -c "
