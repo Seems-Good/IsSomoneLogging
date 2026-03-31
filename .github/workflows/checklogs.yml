@@ -2,7 +2,7 @@ name: Check Logs
 
 on:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 concurrency:
@@ -11,7 +11,8 @@ concurrency:
 
 jobs:
   check-logs:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    #runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
