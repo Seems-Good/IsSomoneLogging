@@ -150,10 +150,11 @@ def main():
     print(f"Latest report : {latest_code}")
     print(f"Last seen     : {last_code or '(first run)'}")
 
+    save_last_log(report)  # ← always write, regardless of whether it's new
+
     if last_code is None:
         print("First run — saving current report. Will notify on next new upload.")
         save_last_seen(latest_code)
-        save_last_log(report)          # ← also seed last_log.json on first run
         return
 
     if latest_code == last_code:
@@ -163,7 +164,6 @@ def main():
     # New report found!
     send_discord_notification(report)
     save_last_seen(latest_code)
-    save_last_log(report)              # ← update last_log.json on every new report
 
 
 if __name__ == "__main__":
