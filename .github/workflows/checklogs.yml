@@ -27,7 +27,7 @@ jobs:
             wcl-last-seen-
 
       - name: Install dependencies
-        run: pip3 install requests --break-system-packages 
+        run: pip3 install requests --break-system-packages
 
       - name: Run log checker
         env:
@@ -48,7 +48,7 @@ jobs:
       - name: Pull latest before badge update
         run: git pull --rebase origin main
 
-      - name: Update last-run badge only
+      - name: Update last-run badge
         run: |
           python3 -c "
           import json
@@ -61,10 +61,10 @@ jobs:
           print('Last run: ' + last_run_str)
           "
 
-      - name: Commit badge data
+      - name: Commit badge + last_log data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add last_run_badge.json
-          git diff --cached --quiet || git commit -m "chore: update badge timestamps [skip ci]"
+          git add last_run_badge.json last_log.json
+          git diff --cached --quiet || git commit -m "chore: update badge + last_log [skip ci]"
           git push
